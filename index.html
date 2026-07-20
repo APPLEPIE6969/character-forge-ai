@@ -454,10 +454,12 @@
 
       async function generateImage(prompt, token) {
         var url = buildImageUrl(prompt, token);
-        // Verify the image actually loads (image API returns the bytes or an error).
-        var head = await fetch(url);
-        if (!head.ok) {
-          throw new Error("Image API error: " + head.status);
+        // The image API returns the bytes on a GET. We verify it loads by
+        // fetching the body (a slow first generation is normal — browser
+        // <img> will follow up with its own GET). 404/500 surfaces as error.
+        var res = await fetch(url);
+        if (!res.ok) {
+          throw new Error("Image API error: " + res.status);
         }
         return url;
       }
@@ -484,10 +486,17 @@
           var storyPromise = generateBackstory(concept, token);
           var imagePromise = generateImage(concept, token);
 
-          // Image: show as soon as ready.
+          // Image: show as soon as ready, with an onerror fallback.
           var imageUrl = await imagePromise;
-          imageBody.innerHTML = '<img src="' + imageUrl + '" alt="Portrait of ' +
-            escapeHtml(concept) + '" />';
+          var img = document.createElement("img");
+          img.alt = "Portrait of " + concept;
+          img.onerror = function () {
+            imageBody.innerHTML =
+              '<div class="placeholder">Portrait failed to load. The image API may be busy — try again.</div>';
+          };
+          img.src = imageUrl;
+          imageBody.innerHTML = "";
+          imageBody.appendChild(img);
 
           // Story: show when ready.
           var story = await storyPromise;
