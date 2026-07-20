@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Character Forge AI — Powered by Pollinations.ai</title>
+  <title>Character Forge AI</title>
   <style>
     :root {
       --bg: #0b0d17;
@@ -252,6 +252,46 @@
       border-radius: 0 0 16px 16px;
     }
 
+    .card.portrait-card {
+      position: relative;
+    }
+
+    .download-btn {
+      position: absolute;
+      top: 52px;
+      right: 12px;
+      width: 38px;
+      height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      background: rgba(11, 13, 23, 0.45);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+      transition: background 0.15s ease, transform 0.12s ease;
+      z-index: 2;
+    }
+
+    .download-btn:hover {
+      background: rgba(124, 92, 255, 0.7);
+      transform: translateY(-1px);
+    }
+
+    .download-btn .icon {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
     .img-loading {
       color: var(--muted);
       font-size: 14px;
@@ -293,11 +333,10 @@
 <body>
   <div class="wrap">
     <header class="hero">
-      <span class="badge">Powered by Pollinations.ai</span>
       <h1>Character Forge AI</h1>
       <p class="subtitle">
         Forge a fully-realized character from a single concept. Get a vivid
-        3-sentence backstory and a cinematic portrait — generated live by
+        3-sentence backstory and a cinematic portrait, generated live by
         Pollinations.ai's free text and image models.
       </p>
     </header>
@@ -320,7 +359,7 @@
       </div>
 
       <div class="field">
-        <label for="token">Pollinations API token (optional — BYOP)</label>
+        <label for="token">Pollinations API token (optional, BYOP)</label>
         <input
           type="text"
           id="token"
@@ -363,11 +402,18 @@
           <div class="placeholder">Your character's 3-sentence lore will appear here.</div>
         </div>
       </div>
-      <div class="card">
+      <div class="card portrait-card">
         <h2>Portrait</h2>
         <div class="body" id="imageBody">
           <div class="placeholder">A cinematic portrait will be forged here.</div>
         </div>
+        <button class="download-btn" id="downloadBtn" title="Download portrait" style="display:none;" aria-label="Download portrait">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 3v12" />
+            <path d="M7 11l5 5 5-5" />
+            <path d="M5 21h14" />
+          </svg>
+        </button>
       </div>
     </section>
 
@@ -390,6 +436,8 @@
       var storyBody = document.getElementById("storyBody");
       var imageBody = document.getElementById("imageBody");
       var examplesEl = document.getElementById("examples");
+      var downloadBtn = document.getElementById("downloadBtn");
+      var currentImageUrl = null;
 
       var SURPRISE = [
         "Glitch Bard of the Last Server",
@@ -462,7 +510,7 @@
           if (!r.ok) {
             throw new Error("Text API error (free): " + r.status);
           }
-          // Plain text response — no JSON parsing needed.
+          // Plain text response, no JSON parsing needed.
           var text = await r.text();
           return text.trim();
         }
@@ -483,8 +531,8 @@
       async function generateImage(prompt, token) {
         var url = buildImageUrl(prompt, token);
         // The image API returns the bytes on a GET. We verify it loads by
-        // fetching the body (a slow first generation is normal — browser
-        // <img> will follow up with its own GET). 404/500 surfaces as error.
+          // fetching the body (a slow first generation is normal, browser
+          // <img> will follow up with its own GET). 404/500 surfaces as error.
         var res = await fetch(url);
         if (!res.ok) {
           throw new Error("Image API error: " + res.status);
@@ -516,11 +564,17 @@
 
           // Image: show as soon as ready, with an onerror fallback.
           var imageUrl = await imagePromise;
+          currentImageUrl = imageUrl;
           var img = document.createElement("img");
           img.alt = "Portrait of " + concept;
           img.onerror = function () {
             imageBody.innerHTML =
-              '<div class="placeholder">Portrait failed to load. The image API may be busy — try again.</div>';
+              '<div class="placeholder">Portrait failed to load. The image API may be busy, try again.</div>';
+            downloadBtn.style.display = "none";
+            currentImageUrl = null;
+          };
+          img.onload = function () {
+            downloadBtn.style.display = "flex";
           };
           img.src = imageUrl;
           imageBody.innerHTML = "";
@@ -542,6 +596,8 @@
             '<div class="placeholder">Failed to generate backstory. Check your connection or token and retry.</div>';
           imageBody.innerHTML =
             '<div class="placeholder">Failed to generate portrait. Check your connection or token and retry.</div>';
+          downloadBtn.style.display = "none";
+          currentImageUrl = null;
         } finally {
           forgeBtn.disabled = false;
           randomBtn.disabled = false;
@@ -573,6 +629,16 @@
           conceptEl.value = e.target.textContent;
           forge();
         }
+      });
+
+      downloadBtn.addEventListener("click", function () {
+        if (!currentImageUrl) return;
+        var a = document.createElement("a");
+        a.href = currentImageUrl;
+        a.download = "character-forge-portrait.png";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
       });
     })();
   </script>
