@@ -39,10 +39,28 @@ and clear status messaging.
   special characters never break the request.
 
 ### Bring Your Own Pollen (BYOP)
-An optional input field lets the user paste their Pollinations API token.
-- **Token empty** → free public GET endpoints.
-- **Token present** → authenticated POST chat endpoint for text + token appended
-  to the image URL for higher rate limits.
+The app uses the **Pollinations BYOP App flow** (legacy fragment flow), which
+works with no backend server:
+
+1. Click **Connect with Pollinations**. You're sent to the Pollinations consent
+   screen, authorized with this app's publishable **App Key (`pk_...`)**.
+2. After approving, Pollinations redirects back with a scoped, user-authorized
+   key (`sk_...`) in the URL **fragment** (`#api_key=...`). The fragment never
+   hits server logs.
+3. The app captures that key, attributes usage to the app, and spends the user's
+   own Pollen balance. The key is kept in `sessionStorage` for the session and
+   can be cleared with **Disconnect**.
+
+If connected (or a token is pasted manually):
+- Text uses the authenticated `POST https://gen.pollinations.ai/v1/chat/completions`
+  with `Authorization: Bearer <key>`.
+- The image URL gets `&token=<key>` appended for higher rate limits.
+
+If not connected, the app falls back to the free public GET endpoints.
+
+**Configuration:** set your `pk_...` App Key in the `APP_KEY` constant near the
+top of the `<script>` in `index.html` (create one at enter.pollinations.ai).
+The App Key is publishable and safe to ship in static client code.
 
 ---
 

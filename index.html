@@ -123,6 +123,33 @@
       margin-top: 6px;
     }
 
+    .byop-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+
+    .byop-connect { flex: 0 0 auto; }
+
+    .byop-status {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 10px;
+    }
+
+    .byop-status.connected { color: var(--ok); }
+
+    .byop-advanced {
+      margin-top: 12px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .byop-advanced summary {
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .byop-advanced input {
+      margin-top: 10px;
+    }
+
     .row { display: flex; gap: 12px; flex-wrap: wrap; }
 
     .btn {
@@ -367,17 +394,36 @@
       </div>
 
       <div class="field">
-        <label for="token">Pollinations API token (optional, BYOP)</label>
-        <input
-          type="text"
-          id="token"
-          placeholder="Leave blank to use the free public endpoints"
-          autocomplete="off"
-        />
-        <div class="hint">
-          Bring Your Own Pollen: paste a token to use the authenticated
-          chat endpoint &amp; higher image rate limits. Empty = free tier.
+        <label>Bring Your Own Pollen (optional)</label>
+        <div class="byop-row">
+          <button class="btn byop-connect" id="connectBtn" type="button">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M16 11a4 4 0 1 0-8 0" />
+              <path d="M12 15v4" />
+              <circle cx="12" cy="7" r="3.2" />
+            </svg>
+            Connect with Pollinations
+          </button>
+          <button class="btn secondary byop-disconnect" id="disconnectBtn" type="button" style="display:none;">
+            Disconnect
+          </button>
         </div>
+        <div class="byop-status" id="byopStatus">Not connected. Using the free public endpoints.</div>
+        <details class="byop-advanced">
+          <summary>Or paste a token manually</summary>
+          <input
+            type="text"
+            id="token"
+            placeholder="sk_... (optional)"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <div class="hint">
+            Advanced: you can paste a Pollinations API token directly. The
+            recommended way is "Connect with Pollinations" above, which uses
+            your own Pollen balance and attributes usage to this app.
+          </div>
+        </details>
       </div>
 
       <div class="row">
@@ -438,6 +484,9 @@
 
       var conceptEl = document.getElementById("concept");
       var tokenEl = document.getElementById("token");
+      var connectBtn = document.getElementById("connectBtn");
+      var disconnectBtn = document.getElementById("disconnectBtn");
+      var byopStatus = document.getElementById("byopStatus");
       var forgeBtn = document.getElementById("forgeBtn");
       var randomBtn = document.getElementById("randomBtn");
       var statusEl = document.getElementById("status");
@@ -446,6 +495,39 @@
       var examplesEl = document.getElementById("examples");
       var downloadBtn = document.getElementById("downloadBtn");
       var currentImageUrl = null;
+
+      // Your Pollinations App Key (pk_...). Create one at enter.pollinations.ai.
+      // It is publishable (safe to ship in static client code) and only
+      // identifies/attributes this app; it is NOT a secret.
+      var APP_KEY = "pk_REPLACE_WITH_YOUR_APP_KEY";
+
+      // BYOP state: an app-attributed sk_... (from the fragment flow) takes
+      // priority over any manually pasted token.
+      var byopKey = null;
+
+      function getActiveToken() {
+        if (byopKey) return byopKey;
+        var manual = tokenEl.value.trim();
+        return manual || "";
+      }
+
+      function setByopConnected(key) {
+        byopKey = key;
+        byopStatus.textContent = "Connected. Using your Pollen via Bring Your Own Pollen.";
+        byopStatus.classList.add("connected");
+        connectBtn.style.display = "none";
+        disconnectBtn.style.display = "inline-block";
+        try { sessionStorage.setItem("cf_byop_key", key); } catch (e) {}
+      }
+
+      function setByopDisconnected() {
+        byopKey = null;
+        byopStatus.textContent = "Not connected. Using the free public endpoints.";
+        byopStatus.classList.remove("connected");
+        connectBtn.style.display = "inline-block";
+        disconnectBtn.style.display = "none";
+        try { sessionStorage.removeItem("cf_byop_key"); } catch (e) {}
+      }
 
       var SURPRISE = [
         "Glitch Bard of the Last Server",
@@ -550,7 +632,7 @@
 
       async function forge() {
         var concept = conceptEl.value.trim();
-        var token = tokenEl.value.trim();
+        var token = getActiveToken();
 
         if (!concept) {
           setStatus("Please enter a character concept first.", "error");
@@ -670,6 +752,53 @@
             downloadBtn.title = prevTitle;
           });
       });
+
+      // ---- BYOP APP FLOW (legacy fragment flow, 100% client-side) ----------
+      // The user-authorized sk_... returns in the URL fragment (#api_key=...),
+      // which never hits server logs. No secret is stored in static JS.
+      function captureFragmentKey() {
+        if (location.hash && location.hash.indexOf("api_key=") !== -1) {
+          var params = new URLSearchParams(location.hash.slice(1));
+          var key = params.get("api_key");
+          if (key) {
+            // Clean the fragment from the URL bar (key stays in memory/session).
+            history.replaceState(null, "", location.pathname + location.search);
+            setByopConnected(key);
+            return true;
+          }
+        }
+        return false;
+      }
+
+      function startConnect() {
+        if (APP_KEY.indexOf("REPLACE_WITH_YOUR_APP_KEY") !== -1) {
+          setStatus(
+            "App Key not configured. Set APP_KEY in the source or paste a token manually.",
+            "error"
+          );
+          return;
+        }
+        var params = new URLSearchParams({
+          redirect_uri: location.href.split("#")[0],
+          client_id: APP_KEY,
+          scope: "usage"
+        });
+        window.location.href = "https://enter.pollinations.ai/authorize?" + params.toString();
+      }
+
+      connectBtn.addEventListener("click", startConnect);
+
+      disconnectBtn.addEventListener("click", function () {
+        setByopDisconnected();
+      });
+
+      // Restore a previously connected key for this session, then check for a
+      // returning fragment from the consent redirect.
+      try {
+        var saved = sessionStorage.getItem("cf_byop_key");
+        if (saved) setByopConnected(saved);
+      } catch (e) {}
+      captureFragmentKey();
     })();
   </script>
 </body>
