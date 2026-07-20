@@ -51,6 +51,12 @@ works with no backend server:
    own Pollen balance. The key is kept in `sessionStorage` for the session and
    can be cleared with **Disconnect**.
 
+**Security:** a random `state` value (generated with `crypto.getRandomValues`
+and stored in `sessionStorage`) is sent on the redirect and verified against the
+echoed value on return, protecting against CSRF. A check also ensures the page is
+served over `http(s)` before starting the flow. No secret or client secret is
+ever stored in the static client.
+
 If connected (or a token is pasted manually):
 - Text uses the authenticated `POST https://gen.pollinations.ai/v1/chat/completions`
   with `Authorization: Bearer <key>`.

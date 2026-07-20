@@ -756,14 +756,33 @@
       // ---- BYOP APP FLOW (legacy fragment flow, 100% client-side) ----------
       // The user-authorized sk_... returns in the URL fragment (#api_key=...),
       // which never hits server logs. No secret is stored in static JS.
+      // A random `state` value protects against CSRF on the redirect.
+      function randomState() {
+        var buf = new Uint8Array(16);
+        (window.crypto || window.msCrypto).getRandomValues(buf);
+        return Array.prototype.map
+          .call(buf, function (b) { return ("0" + b.toString(16)).slice(-2); })
+          .join("");
+      }
+
       function captureFragmentKey() {
         if (location.hash && location.hash.indexOf("api_key=") !== -1) {
           var params = new URLSearchParams(location.hash.slice(1));
           var key = params.get("api_key");
           if (key) {
+            // Verify the echoed CSRF state if we set one.
+            var returnedState = params.get("state");
+            var expectedState = null;
+            try { expectedState = sessionStorage.getItem("cf_byop_state"); } catch (e) {}
+            if (expectedState && returnedState !== expectedState) {
+              setStatus("Connect failed: state mismatch (possible CSRF). Try again.", "error");
+              history.replaceState(null, "", location.pathname + location.search);
+              return false;
+            }
             // Clean the fragment from the URL bar (key stays in memory/session).
             history.replaceState(null, "", location.pathname + location.search);
             setByopConnected(key);
+            try { sessionStorage.removeItem("cf_byop_state"); } catch (e) {}
             return true;
           }
         }
@@ -778,10 +797,23 @@
           );
           return;
         }
+        // Sanity check: the Redirect URI must be an http(s) origin (the consent
+        // screen rejects non-http redirects and loopback mismatch on static hosts).
+        var redirectUri = location.href.split("#")[0];
+        if (!/^https?:\/\//i.test(redirectUri)) {
+          setStatus(
+            "Connect failed: this page must be served over http(s) to use BYOP.",
+            "error"
+          );
+          return;
+        }
+        var state = randomState();
+        try { sessionStorage.setItem("cf_byop_state", state); } catch (e) {}
         var params = new URLSearchParams({
-          redirect_uri: location.href.split("#")[0],
+          redirect_uri: redirectUri,
           client_id: APP_KEY,
-          scope: "usage"
+          scope: "usage",
+          state: state
         });
         window.location.href = "https://enter.pollinations.ai/authorize?" + params.toString();
       }
