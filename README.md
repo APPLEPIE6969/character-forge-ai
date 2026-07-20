@@ -2,8 +2,8 @@
 
 A polished, fully-static web app that turns a single character concept into a
 **vivid 3-sentence backstory** and a **cinematic portrait**, generated live by
-[Pollinations.ai](https://pollinations.ai). Built for the Pollinations
-"Flower Tier" app program and hosted with **zero build steps** on GitHub Pages.
+[Pollinations.ai](https://pollinations.ai). Hosted with **zero build steps**
+on GitHub Pages.
 
 > **Powered by Pollinations.ai**
 
@@ -19,8 +19,7 @@ A polished, fully-static web app that turns a single character concept into a
    handling.
 
 The UI is dark-themed and modern, with example chips, a "Surprise me" button,
-and clear status messaging — designed to avoid the "low-effort generator" look
-that gets Flower Tier submissions rejected.
+and clear status messaging.
 
 ---
 
