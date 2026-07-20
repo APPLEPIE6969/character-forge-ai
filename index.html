@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Character Forge AI — Powered by Pollinations.ai</title>
+  <style>
+    :root {
+      --bg: #0b0d17;
+      --bg-2: #12152a;
+      --card: #171a30;
+      --card-2: #1e2238;
+      --accent: #7c5cff;
+      --accent-2: #21d4fd;
+      --text: #e9ecf5;
+      --muted: #9aa0bd;
+      --border: #2a2f4d;
+      --danger: #ff6b6b;
+      --ok: #43e0a0;
+      --shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background:
+        radial-gradient(900px 600px at 12% -10%, rgba(124, 92, 255, 0.18), transparent 60%),
+        radial-gradient(800px 500px at 100% 0%, rgba(33, 212, 253, 0.14), transparent 55%),
+        var(--bg);
+      color: var(--text);
+      font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+    }
+
+    .wrap {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 48px 20px 80px;
+    }
+
+    header.hero {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+
+    .badge {
+      display: inline-block;
+      font-size: 12px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--accent-2);
+      border: 1px solid var(--border);
+      background: rgba(33, 212, 253, 0.08);
+      padding: 6px 12px;
+      border-radius: 999px;
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      font-size: clamp(32px, 6vw, 52px);
+      line-height: 1.05;
+      margin: 0 0 12px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 16px;
+      max-width: 620px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    .panel {
+      background: linear-gradient(180deg, var(--card), var(--bg-2));
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .field { margin-bottom: 18px; }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 8px;
+      letter-spacing: 0.02em;
+    }
+
+    input[type="text"], textarea {
+      width: 100%;
+      background: var(--card-2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      color: var(--text);
+      font-size: 15px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    input[type="text"]:focus, textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(124, 92, 255, 0.22);
+    }
+
+    textarea { resize: vertical; min-height: 80px; }
+
+    .hint {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    .row { display: flex; gap: 12px; flex-wrap: wrap; }
+
+    .btn {
+      appearance: none;
+      border: none;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      padding: 14px 22px;
+      border-radius: 12px;
+      color: #fff;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      box-shadow: 0 10px 30px rgba(124, 92, 255, 0.35);
+      transition: transform 0.12s ease, opacity 0.18s ease;
+      flex: 1 1 auto;
+    }
+
+    .btn:hover { transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+    .btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+
+    .btn.secondary {
+      background: var(--card-2);
+      color: var(--muted);
+      border: 1px solid var(--border);
+      box-shadow: none;
+      flex: 0 0 auto;
+    }
+
+    .status {
+      margin-top: 16px;
+      min-height: 22px;
+      font-size: 14px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .status.error { color: var(--danger); }
+    .status.ok { color: var(--ok); }
+
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.25);
+      border-top-color: var(--accent-2);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      flex: 0 0 auto;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .results {
+      margin-top: 28px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 720px) {
+      .results { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: linear-gradient(180deg, var(--card), var(--bg-2));
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      min-height: 220px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .card h2 {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      margin: 0;
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .card .body {
+      padding: 18px;
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .placeholder {
+      color: var(--muted);
+      font-size: 14px;
+      text-align: center;
+      line-height: 1.6;
+    }
+
+    .backstory {
+      color: var(--text);
+      font-size: 15px;
+      line-height: 1.7;
+      text-align: left;
+      white-space: pre-wrap;
+    }
+
+    .card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      border-radius: 0 0 16px 16px;
+    }
+
+    .img-loading {
+      color: var(--muted);
+      font-size: 14px;
+      text-align: center;
+    }
+
+    footer {
+      margin-top: 40px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    footer a { color: var(--accent-2); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    .examples {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .chip {
+      cursor: pointer;
+      font-size: 12px;
+      color: var(--accent-2);
+      border: 1px solid var(--border);
+      background: rgba(33, 212, 253, 0.06);
+      padding: 6px 10px;
+      border-radius: 999px;
+      transition: background 0.15s ease;
+    }
+
+    .chip:hover { background: rgba(33, 212, 253, 0.16); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <span class="badge">Pollinations.ai · Flower Tier</span>
+      <h1>Character Forge AI</h1>
+      <p class="subtitle">
+        Forge a fully-realized character from a single concept. Get a vivid
+        3-sentence backstory and a cinematic portrait — generated live by
+        Pollinations.ai's free text and image models.
+      </p>
+    </header>
+
+    <section class="panel">
+      <div class="field">
+        <label for="concept">Character concept</label>
+        <input
+          type="text"
+          id="concept"
+          placeholder="e.g. Cyberpunk Witch, Sunken City Archaeologist, Neon Samurai..."
+          autocomplete="off"
+        />
+        <div class="examples" id="examples">
+          <span class="chip">Cyberpunk Witch</span>
+          <span class="chip">Neon Samurai</span>
+          <span class="chip">Sunken City Archaeologist</span>
+          <span class="chip">Clockwork Detective</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="token">Pollinations API token (optional — BYOP)</label>
+        <input
+          type="text"
+          id="token"
+          placeholder="Leave blank to use the free public endpoints"
+          autocomplete="off"
+        />
+        <div class="hint">
+          Bring Your Own Pollen: paste a token to use the authenticated
+          chat endpoint &amp; higher image rate limits. Empty = free tier.
+        </div>
+      </div>
+
+      <div class="row">
+        <button class="btn" id="forgeBtn">⚡ Forge Character</button>
+        <button class="btn secondary" id="randomBtn">🎲 Surprise me</button>
+      </div>
+
+      <div class="status" id="status" aria-live="polite"></div>
+    </section>
+
+    <section class="results">
+      <div class="card">
+        <h2>Backstory</h2>
+        <div class="body" id="storyBody">
+          <div class="placeholder">Your character's 3-sentence lore will appear here.</div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Portrait</h2>
+        <div class="body" id="imageBody">
+          <div class="placeholder">A cinematic portrait will be forged here.</div>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      Built with the Pollinations.ai Text &amp; Image APIs.<br />
+      <strong>Powered by Pollinations.ai</strong><br />
+      <a href="https://pollinations.ai" target="_blank" rel="noopener">pollinations.ai</a>
+    </footer>
+  </div>
+
+  <script>
+    (function () {
+      "use strict";
+
+      var conceptEl = document.getElementById("concept");
+      var tokenEl = document.getElementById("token");
+      var forgeBtn = document.getElementById("forgeBtn");
+      var randomBtn = document.getElementById("randomBtn");
+      var statusEl = document.getElementById("status");
+      var storyBody = document.getElementById("storyBody");
+      var imageBody = document.getElementById("imageBody");
+      var examplesEl = document.getElementById("examples");
+
+      var SURPRISE = [
+        "Glitch Bard of the Last Server",
+        "Crystalline Deep-Sea Oracle",
+        "Rusted Sky Pirate",
+        "Hollow Mask Puppeteer"
+      ];
+
+      function setStatus(text, type, spinning) {
+        var html = "";
+        if (spinning) html += '<span class="spinner"></span>';
+        html += (text || "");
+        statusEl.innerHTML = html;
+        statusEl.className = "status" + (type ? " " + type : "");
+      }
+
+      function clearStatus() {
+        statusEl.innerHTML = "";
+        statusEl.className = "status";
+      }
+
+      // ---- TEXT GENERATION -------------------------------------------------
+      // Free tier:  GET  https://text.pollinations.ai/{prompt}?model=openai  -> plain text
+      // BYOP tier:  POST https://gen.pollinations.ai/v1/chat/completions
+      //             Authorization: Bearer <token>, OpenAI chat JSON body    -> data.choices[0].message.content
+      async function generateBackstory(prompt, token) {
+        if (token) {
+          var res = await fetch("https://gen.pollinations.ai/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer " + token
+            },
+            body: JSON.stringify({
+              model: "openai",
+              messages: [
+                {
+                  role: "user",
+                  content:
+                    "Write a vivid, original 3-sentence backstory for a fictional character " +
+                    "concept: \"" + prompt + "\". Keep it to exactly three sentences."
+                }
+              ]
+            })
+          });
+          if (!res.ok) {
+            throw new Error("Text API error (BYOP): " + res.status);
+          }
+          var data = await res.json();
+          // Defensive parse so a missing choice never throws.
+          if (
+            !data ||
+            !data.choices ||
+            !data.choices[0] ||
+            !data.choices[0].message ||
+            typeof data.choices[0].message.content !== "string"
+          ) {
+            throw new Error("Unexpected BYOP chat response shape.");
+          }
+          return data.choices[0].message.content.trim();
+        } else {
+          var url =
+            "https://text.pollinations.ai/" +
+            encodeURIComponent(
+              "Write a vivid, original 3-sentence backstory for a fictional character " +
+              "concept: \"" + prompt + "\". Keep it to exactly three sentences."
+            ) +
+            "?model=openai";
+          var r = await fetch(url);
+          if (!r.ok) {
+            throw new Error("Text API error (free): " + r.status);
+          }
+          // Plain text response — no JSON parsing needed.
+          var text = await r.text();
+          return text.trim();
+        }
+      }
+
+      // ---- IMAGE GENERATION ------------------------------------------------
+      // https://image.pollinations.ai/prompt/{prompt}?width=512&height=512&nologo=true
+      // BYOP: append &token={token}
+      function buildImageUrl(prompt, token) {
+        var url =
+          "https://image.pollinations.ai/prompt/" +
+          encodeURIComponent(prompt + ", cinematic portrait, dramatic lighting, highly detailed") +
+          "?width=512&height=512&nologo=true";
+        if (token) url += "&token=" + encodeURIComponent(token);
+        return url;
+      }
+
+      async function generateImage(prompt, token) {
+        var url = buildImageUrl(prompt, token);
+        // Verify the image actually loads (image API returns the bytes or an error).
+        var head = await fetch(url);
+        if (!head.ok) {
+          throw new Error("Image API error: " + head.status);
+        }
+        return url;
+      }
+
+      async function forge() {
+        var concept = conceptEl.value.trim();
+        var token = tokenEl.value.trim();
+
+        if (!concept) {
+          setStatus("Please enter a character concept first.", "error");
+          conceptEl.focus();
+          return;
+        }
+
+        forgeBtn.disabled = true;
+        randomBtn.disabled = true;
+
+        storyBody.innerHTML = '<div class="placeholder">Forging lore…</div>';
+        imageBody.innerHTML = '<div class="img-loading">Summoning portrait…</div>';
+        setStatus("Contacting Pollinations.ai…", null, true);
+
+        try {
+          // Run both calls in parallel.
+          var storyPromise = generateBackstory(concept, token);
+          var imagePromise = generateImage(concept, token);
+
+          // Image: show as soon as ready.
+          var imageUrl = await imagePromise;
+          imageBody.innerHTML = '<img src="' + imageUrl + '" alt="Portrait of ' +
+            escapeHtml(concept) + '" />';
+
+          // Story: show when ready.
+          var story = await storyPromise;
+          storyBody.innerHTML = '<div class="backstory">' + escapeHtml(story) + "</div>";
+
+          setStatus("Character forged successfully.", "ok");
+        } catch (err) {
+          console.error(err);
+          setStatus(
+            "Something went wrong: " + (err && err.message ? err.message : "unknown error") +
+            ". Please try again.",
+            "error"
+          );
+          storyBody.innerHTML =
+            '<div class="placeholder">Failed to generate backstory. Check your connection or token and retry.</div>';
+          imageBody.innerHTML =
+            '<div class="placeholder">Failed to generate portrait. Check your connection or token and retry.</div>';
+        } finally {
+          forgeBtn.disabled = false;
+          randomBtn.disabled = false;
+        }
+      }
+
+      function escapeHtml(str) {
+        return String(str)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      forgeBtn.addEventListener("click", forge);
+      conceptEl.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") forge();
+      });
+
+      randomBtn.addEventListener("click", function () {
+        var pick = SURPRISE[Math.floor(Math.random() * SURPRISE.length)];
+        conceptEl.value = pick;
+        forge();
+      });
+
+      examplesEl.addEventListener("click", function (e) {
+        if (e.target && e.target.classList.contains("chip")) {
+          conceptEl.value = e.target.textContent;
+          forge();
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
