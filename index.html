@@ -532,7 +532,7 @@
 
       // ---- TEXT GENERATION -------------------------------------------------
       // Pollinations text requires BYOP (connected) flow.
-      // Fallback chain for free anonymous text (OpenCode Zen):
+      // Fallback chain 1: OpenCode Zen (free anonymous)
       const ZEN_FALLBACK_MODELS = [
         "laguna-s-2.1-free",
         "deepseek-v4-flash-free",
@@ -540,6 +540,13 @@
         "north-mini-code-free",
         "ling-3.0-flash-free",
         "nemotron-3-ultra-free"
+      ];
+
+      // Fallback chain 2: LLM7.io (anonymous, no auth needed)
+      // Free models that work: gpt-oss:20b, codestral-latest
+      const LLM7_FALLBACK_MODELS = [
+        "gpt-oss:20b",
+        "codestral-latest"
       ];
 
       async function generateBackstoryZen(prompt) {
@@ -567,7 +574,44 @@
             // try next model
           }
         }
-        throw new Error("All free text providers failed. Connect with Pollinations for reliable text generation.");
+        throw new Error("OpenCode Zen models failed.");
+      }
+
+      async function generateBackstoryLLM7(prompt) {
+        for (const model of LLM7_FALLBACK_MODELS) {
+          try {
+            var res = await fetch("https://api.llm7.io/v1/chat/completions", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                model: model,
+                messages: [{
+                  role: "user",
+                  content: "Write a vivid, original 3-sentence backstory for a fictional character concept: \"" + prompt + "\". Keep it to exactly three sentences."
+                }],
+                max_tokens: 200,
+                temperature: 0.9
+              })
+            });
+            if (!res.ok) continue;
+            var data = await res.json();
+            if (data && data.choices && data.choices[0] && data.choices[0].message && typeof data.choices[0].message.content === "string") {
+              return data.choices[0].message.content.trim();
+            }
+          } catch (e) {
+            // try next model
+          }
+        }
+        throw new Error("LLM7.io models failed.");
+      }
+
+      async function generateBackstoryZenWithFallback(prompt) {
+        try {
+          return await generateBackstoryZen(prompt);
+        } catch (e) {
+          // OpenCode Zen failed, try LLM7.io
+          return await generateBackstoryLLM7(prompt);
+        }
       }
 
       async function generateBackstory(prompt, token) {
@@ -603,7 +647,7 @@
           }
           return data.choices[0].message.content.trim();
         } else {
-          return generateBackstoryZen(prompt);
+          return generateBackstoryZenWithFallback(prompt);
         }
       }
 
