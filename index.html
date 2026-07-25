@@ -549,10 +549,14 @@
       ];
 
       // CORS proxy for OpenCode Zen (doesn't allow cross-origin from GitHub Pages)
-      // Deploy your own Cloudflare Worker (see cors-proxy-worker.js) and paste URL here:
+// Deploy your own Cloudflare Worker (see cors-proxy-worker.js) and paste URL here:
+      // If using placeholder, OpenCode Zen will be skipped and LLM7.io used instead.
       const ZEN_CORS_PROXY = "https://YOUR_WORKER_URL.workers.dev";
 
       async function tryZenModel(model, prompt) {
+        // Skip if placeholder not replaced
+        if (ZEN_CORS_PROXY.includes("YOUR_WORKER_URL")) return null;
+
         var url = ZEN_CORS_PROXY + encodeURIComponent("https://opencode.ai/zen/v1/chat/completions");
         var res = await fetch(url, {
           method: "POST",
