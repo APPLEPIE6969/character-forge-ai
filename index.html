@@ -602,7 +602,8 @@
           var text = await tryZenModel(model, prompt);
           if (text) return text;
         }
-        throw new Error("OpenCode Zen models failed.");
+        // Zen failed, try LLM7.io
+        return generateBackstoryLLM7(prompt);
       }
 
       async function generateBackstoryLLM7(prompt) {
@@ -646,7 +647,7 @@
           }
           return data.choices[0].message.content.trim();
         } else {
-          return generateBackstoryZenWithFallback(prompt);
+          return generateBackstoryZen(prompt);
         }
       }
 
