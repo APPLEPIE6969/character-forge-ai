@@ -531,60 +531,44 @@
       }
 
       // ---- TEXT GENERATION -------------------------------------------------
-      // Free tier:  GET  https://text.pollinations.ai/{prompt}?model=openai  -> plain text
-      // BYOP tier:  POST https://gen.pollinations.ai/v1/chat/completions
-      //             Authorization: Bearer <token>, OpenAI chat JSON body    -> data.choices[0].message.content
+      // Free tier text API is deprecated and requires auth.
+      // Only BYOP (connected) flow works for text generation.
       async function generateBackstory(prompt, token) {
-        if (token) {
-          var res = await fetch("https://gen.pollinations.ai/v1/chat/completions", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": "Bearer " + token
-            },
-            body: JSON.stringify({
-              model: "openai",
-              messages: [
-                {
-                  role: "user",
-                  content:
-                    "Write a vivid, original 3-sentence backstory for a fictional character " +
-                    "concept: \"" + prompt + "\". Keep it to exactly three sentences."
-                }
-              ]
-            })
-          });
-          if (!res.ok) {
-            throw new Error("Text API error (BYOP): " + res.status);
-          }
-          var data = await res.json();
-          // Defensive parse so a missing choice never throws.
-          if (
-            !data ||
-            !data.choices ||
-            !data.choices[0] ||
-            !data.choices[0].message ||
-            typeof data.choices[0].message.content !== "string"
-          ) {
-            throw new Error("Unexpected BYOP chat response shape.");
-          }
-          return data.choices[0].message.content.trim();
-        } else {
-          var url =
-            "https://text.pollinations.ai/" +
-            encodeURIComponent(
-              "Write a vivid, original 3-sentence backstory for a fictional character " +
-              "concept: \"" + prompt + "\". Keep it to exactly three sentences."
-            ) +
-            "?model=openai";
-          var r = await fetch(url);
-          if (!r.ok) {
-            throw new Error("Text API error (free): " + r.status);
-          }
-          // Plain text response, no JSON parsing needed.
-          var text = await r.text();
-          return text.trim();
+        if (!token) {
+          throw new Error("Text generation requires connecting with Pollinations. Click 'Connect with Pollinations' to use your Pollen balance.");
         }
+        var res = await fetch("https://gen.pollinations.ai/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + token
+          },
+          body: JSON.stringify({
+            model: "openai",
+            messages: [
+              {
+                role: "user",
+                content:
+                  "Write a vivid, original 3-sentence backstory for a fictional character " +
+                  "concept: \"" + prompt + "\". Keep it to exactly three sentences."
+              }
+            ]
+          })
+        });
+        if (!res.ok) {
+          throw new Error("Text API error (BYOP): " + res.status);
+        }
+        var data = await res.json();
+        if (
+          !data ||
+          !data.choices ||
+          !data.choices[0] ||
+          !data.choices[0].message ||
+          typeof data.choices[0].message.content !== "string"
+        ) {
+          throw new Error("Unexpected BYOP chat response shape.");
+        }
+        return data.choices[0].message.content.trim();
       }
 
       // ---- IMAGE GENERATION ------------------------------------------------
