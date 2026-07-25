@@ -409,21 +409,6 @@
           </button>
         </div>
         <div class="byop-status" id="byopStatus">Not connected. Using the free public endpoints.</div>
-        <details class="byop-advanced">
-          <summary>Or paste a token manually</summary>
-          <input
-            type="text"
-            id="token"
-            placeholder="sk_... (optional)"
-            autocomplete="off"
-            spellcheck="false"
-          />
-          <div class="hint">
-            Advanced: you can paste a Pollinations API token directly. The
-            recommended way is "Connect with Pollinations" above, which uses
-            your own Pollen balance and attributes usage to this app.
-          </div>
-        </details>
       </div>
 
       <div class="row">
@@ -483,7 +468,6 @@
       "use strict";
 
       var conceptEl = document.getElementById("concept");
-      var tokenEl = document.getElementById("token");
       var connectBtn = document.getElementById("connectBtn");
       var disconnectBtn = document.getElementById("disconnectBtn");
       var byopStatus = document.getElementById("byopStatus");
@@ -501,14 +485,11 @@
       // identifies/attributes this app; it is NOT a secret.
       var APP_KEY = "pk_riV9FCgk7EBxACon";
 
-      // BYOP state: an app-attributed sk_... (from the fragment flow) takes
-      // priority over any manually pasted token.
+      // BYOP state: an app-attributed sk_... (from the fragment flow).
       var byopKey = null;
 
       function getActiveToken() {
-        if (byopKey) return byopKey;
-        var manual = tokenEl.value.trim();
-        return manual || "";
+        return byopKey || "";
       }
 
       function setByopConnected(key) {
