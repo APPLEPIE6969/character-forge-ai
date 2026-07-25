@@ -618,6 +618,33 @@
         throw new Error("LLM7.io models failed.");
       }
 
+      // Offline template fallback - always works
+      function generateBackstoryTemplate(prompt) {
+        var templates = [
+          "Forged in the neon glow of {concept}'s origins, {name} walks the line between legend and outcast, their past a mosaic of broken codes and whispered oaths. They wield their craft like a weapon forged from starlight and scrap, turning the city's own systems against its corrupt heart. Now they hunt the shadows between sectors, seeking the one truth that can rewrite their destiny.",
+          "Born from the collision of ancient lore and bleeding-edge tech, {name} carries the weight of two worlds in their circuitry-laced veins. Their power flows not from magic alone, but from the harmony they've forged between forgotten rituals and the pulse of the machine. Every step they take rewrites the rules of what's possible.",
+          "In the underbelly of a world that forgot how to dream, {name} emerged as a glitch in the system - a {concept} whose very existence defies the architecture of control. They don't just survive the chaos; they conduct it, turning oppression's tools into instruments of liberation. The endgame isn't escape; it's evolution."
+        ];
+        var template = templates[Math.floor(Math.random() * templates.length)];
+        var name = prompt.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        return template.replace(/\{concept\}/g, prompt).replace(/\{name\}/g, name);
+      }
+
+      async function generateBackstoryZen(prompt) {
+        for (const model of ZEN_FALLBACK_MODELS) {
+          var text = await tryZenModel(model, prompt);
+          if (text) return text;
+        }
+        // Zen failed, try LLM7.io
+        try {
+          return await generateBackstoryLLM7(prompt);
+        } catch (e) {
+          // All APIs failed, use template
+          console.warn("All API providers failed, using template:", e);
+          return generateBackstoryTemplate(prompt);
+        }
+      }
+
       async function generateBackstory(prompt, token) {
         if (token) {
           var res = await fetch("https://gen.pollinations.ai/v1/chat/completions", {
