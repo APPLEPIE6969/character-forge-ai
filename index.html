@@ -531,44 +531,80 @@
       }
 
       // ---- TEXT GENERATION -------------------------------------------------
-      // Free tier text API is deprecated and requires auth.
-      // Only BYOP (connected) flow works for text generation.
-      async function generateBackstory(prompt, token) {
-        if (!token) {
-          throw new Error("Text generation requires connecting with Pollinations. Click 'Connect with Pollinations' to use your Pollen balance.");
+      // Pollinations text requires BYOP (connected) flow.
+      // Fallback chain for free anonymous text (OpenCode Zen):
+      const ZEN_FALLBACK_MODELS = [
+        "laguna-s-2.1-free",
+        "deepseek-v4-flash-free",
+        "mimo-v2.5-free",
+        "north-mini-code-free",
+        "ling-3.0-flash-free",
+        "nemotron-3-ultra-free"
+      ];
+
+      async function generateBackstoryZen(prompt) {
+        for (const model of ZEN_FALLBACK_MODELS) {
+          try {
+            var res = await fetch("https://opencode.ai/zen/v1/chat/completions", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                model: model,
+                messages: [{
+                  role: "user",
+                  content: "Write a vivid, original 3-sentence backstory for a fictional character concept: \"" + prompt + "\". Keep it to exactly three sentences."
+                }],
+                max_tokens: 200,
+                temperature: 0.8
+              })
+            });
+            if (!res.ok) continue;
+            var data = await res.json();
+            if (data && data.choices && data.choices[0] && data.choices[0].message && typeof data.choices[0].message.content === "string") {
+              return data.choices[0].message.content.trim();
+            }
+          } catch (e) {
+            // try next model
+          }
         }
-        var res = await fetch("https://gen.pollinations.ai/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": "Bearer " + token
-          },
-          body: JSON.stringify({
-            model: "openai",
-            messages: [
-              {
+        throw new Error("All free text providers failed. Connect with Pollinations for reliable text generation.");
+      }
+
+      async function generateBackstory(prompt, token) {
+        if (token) {
+          var res = await fetch("https://gen.pollinations.ai/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer " + token
+            },
+            body: JSON.stringify({
+              model: "openai",
+              messages: [{
                 role: "user",
                 content:
                   "Write a vivid, original 3-sentence backstory for a fictional character " +
                   "concept: \"" + prompt + "\". Keep it to exactly three sentences."
-              }
-            ]
-          })
-        });
-        if (!res.ok) {
-          throw new Error("Text API error (BYOP): " + res.status);
+              }]
+            })
+          });
+          if (!res.ok) {
+            throw new Error("Text API error (BYOP): " + res.status);
+          }
+          var data = await res.json();
+          if (
+            !data ||
+            !data.choices ||
+            !data.choices[0] ||
+            !data.choices[0].message ||
+            typeof data.choices[0].message.content !== "string"
+          ) {
+            throw new Error("Unexpected BYOP chat response shape.");
+          }
+          return data.choices[0].message.content.trim();
+        } else {
+          return generateBackstoryZen(prompt);
         }
-        var data = await res.json();
-        if (
-          !data ||
-          !data.choices ||
-          !data.choices[0] ||
-          !data.choices[0].message ||
-          typeof data.choices[0].message.content !== "string"
-        ) {
-          throw new Error("Unexpected BYOP chat response shape.");
-        }
-        return data.choices[0].message.content.trim();
       }
 
       // ---- IMAGE GENERATION ------------------------------------------------
