@@ -549,7 +549,8 @@
       ];
 
       // CORS proxy for OpenCode Zen (doesn't allow cross-origin from GitHub Pages)
-      const ZEN_CORS_PROXY = "https://corsproxy.io/?";
+      // Deploy your own Cloudflare Worker (see cors-proxy-worker.js) and paste URL here:
+      const ZEN_CORS_PROXY = "https://YOUR_WORKER_URL.workers.dev";
 
       async function tryZenModel(model, prompt) {
         var url = ZEN_CORS_PROXY + encodeURIComponent("https://opencode.ai/zen/v1/chat/completions");
