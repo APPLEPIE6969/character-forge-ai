@@ -532,7 +532,7 @@
 
       // ---- TEXT GENERATION -------------------------------------------------
       // Pollinations text requires BYOP (connected) flow.
-      // Fallback chain 1: OpenCode Zen (free anonymous)
+      // Fallback chain 1: OpenCode Zen (free anonymous) - via CORS proxy
       const ZEN_FALLBACK_MODELS = [
         "laguna-s-2.1-free",
         "deepseek-v4-flash-free",
@@ -542,76 +542,74 @@
         "nemotron-3-ultra-free"
       ];
 
-      // Fallback chain 2: LLM7.io (anonymous, no auth needed)
-      // Free models that work: gpt-oss:20b, codestral-latest
+      // Fallback chain 2: LLM7.io (free anonymous, CORS-enabled)
       const LLM7_FALLBACK_MODELS = [
         "gpt-oss:20b",
         "codestral-latest"
       ];
 
+      // CORS proxy for OpenCode Zen (doesn't allow cross-origin from GitHub Pages)
+      const ZEN_CORS_PROXY = "https://corsproxy.io/?";
+
+      async function tryZenModel(model, prompt) {
+        var url = ZEN_CORS_PROXY + encodeURIComponent("https://opencode.ai/zen/v1/chat/completions");
+        var res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: model,
+            messages: [{
+              role: "user",
+              content: "Write a vivid, original 3-sentence backstory for a fictional character concept: \"" + prompt + "\". Keep it to exactly three sentences."
+            }],
+            max_tokens: 200,
+            temperature: 0.8
+          })
+        });
+        if (!res.ok) return null;
+        var data = await res.json();
+        if (data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) {
+          return data.choices[0].message.content.trim();
+        }
+        return null;
+      }
+
+      async function tryLLM7Model(model, prompt) {
+        var res = await fetch("https://api.llm7.io/v1/chat/completions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: model,
+            messages: [{
+              role: "user",
+              content: "Write a vivid, original 3-sentence backstory for a fictional character concept: \"" + prompt + "\". Keep it to exactly three sentences."
+            }],
+            max_tokens: 200,
+            temperature: 0.9
+          })
+        });
+        if (!res.ok) return null;
+        var data = await res.json();
+        if (data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) {
+          return data.choices[0].message.content.trim();
+        }
+        return null;
+      }
+
       async function generateBackstoryZen(prompt) {
         for (const model of ZEN_FALLBACK_MODELS) {
-          try {
-            var res = await fetch("https://opencode.ai/zen/v1/chat/completions", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                model: model,
-                messages: [{
-                  role: "user",
-                  content: "Write a vivid, original 3-sentence backstory for a fictional character concept: \"" + prompt + "\". Keep it to exactly three sentences."
-                }],
-                max_tokens: 200,
-                temperature: 0.8
-              })
-            });
-            if (!res.ok) continue;
-            var data = await res.json();
-            if (data && data.choices && data.choices[0] && data.choices[0].message && typeof data.choices[0].message.content === "string") {
-              return data.choices[0].message.content.trim();
-            }
-          } catch (e) {
-            // try next model
-          }
+          var text = await tryZenModel(model, prompt);
+          if (text) return text;
         }
         throw new Error("OpenCode Zen models failed.");
       }
 
       async function generateBackstoryLLM7(prompt) {
         for (const model of LLM7_FALLBACK_MODELS) {
-          try {
-            var res = await fetch("https://api.llm7.io/v1/chat/completions", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                model: model,
-                messages: [{
-                  role: "user",
-                  content: "Write a vivid, original 3-sentence backstory for a fictional character concept: \"" + prompt + "\". Keep it to exactly three sentences."
-                }],
-                max_tokens: 200,
-                temperature: 0.9
-              })
-            });
-            if (!res.ok) continue;
-            var data = await res.json();
-            if (data && data.choices && data.choices[0] && data.choices[0].message && typeof data.choices[0].message.content === "string") {
-              return data.choices[0].message.content.trim();
-            }
-          } catch (e) {
-            // try next model
-          }
+          var text = await tryLLM7Model(model, prompt);
+          if (text) return text;
         }
         throw new Error("LLM7.io models failed.");
-      }
-
-      async function generateBackstoryZenWithFallback(prompt) {
-        try {
-          return await generateBackstoryZen(prompt);
-        } catch (e) {
-          // OpenCode Zen failed, try LLM7.io
-          return await generateBackstoryLLM7(prompt);
-        }
       }
 
       async function generateBackstory(prompt, token) {
